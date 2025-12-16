@@ -8,5 +8,6 @@ import lombok.Setter;
 public class CategoriaDTO {
     private Long id;
     private String denominacion;
+    private int descCategoria;
 }
 

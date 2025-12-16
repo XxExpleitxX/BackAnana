@@ -136,7 +136,7 @@ public class ProductoServiceImpl extends BaseServiceImpl<Producto, Long> impleme
             String busqueda,
             String ordenPrecio // "asc" | "desc" | null
     ) {
-        double descuento = configService.getDescuentoGlobal();
+        double descuentoGlobal = configService.getDescuentoGlobal();
 
         // Sort por precio (precio original). Si querés ordenar por precio con descuento,
         // como el descuento es global, el orden es el mismo.
@@ -157,7 +157,11 @@ public class ProductoServiceImpl extends BaseServiceImpl<Producto, Long> impleme
         // Mapear manteniendo la paginación
         Page<ProductoConDescuentoDTO> dtoPage = productosPage.map(prod -> {
             double precioOriginal = prod.getPrecio();
-            double precioFinal = precioOriginal * (1 - descuento / 100.0);
+            int descCategoria = Optional.ofNullable(prod.getCategoria())
+                    .map(c -> Math.max(0, c.getDescCategoria()))
+                    .orElse(0);
+            double descuentoAplicado = descCategoria > 0 ? descCategoria : descuentoGlobal;
+            double precioFinal = precioOriginal * (1 - descuentoAplicado / 100.0);
             return new ProductoConDescuentoDTO(
                     prod.getId(),
                     prod.getDenominacion(),
@@ -167,6 +171,7 @@ public class ProductoServiceImpl extends BaseServiceImpl<Producto, Long> impleme
                     precioFinal,
                     prod.getImagen(),
                     prod.getCategoria(),
+                    descCategoria,
                     prod.getStock()
             );
         });
