@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
@@ -91,7 +92,7 @@ public class VentaPrintManager {
 
             // ✅ Fecha y hora completas
             Cell fechaCell = row.createCell(col++);
-            fechaCell.setCellValue(Timestamp.valueOf(venta.getFecha()));
+            fechaCell.setCellValue(venta.getFecha());
             fechaCell.setCellStyle(dateTimeStyle);
 
             row.createCell(col++).setCellValue(venta.getFormaPago().toString());
@@ -176,10 +177,10 @@ public class VentaPrintManager {
                     "ORDER BY v.fecha ASC"; // 🕒 importante para ordenar por fecha+hora
 
             PreparedStatement ps = conexion.prepareStatement(query);
-            // Usamos Timestamp para conservar hora
-            ps.setTimestamp(1, Timestamp.valueOf(fechaDesde.atStartOfDay()));
-            ps.setTimestamp(2, Timestamp.valueOf(fechaHasta.atTime(23, 59, 59)));
-
+            // Usamos Timestamp con zona horaria explícita para evitar corrimientos
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone(ZoneId.systemDefault()));
+            ps.setTimestamp(1, Timestamp.valueOf(fechaDesde.atStartOfDay()), calendar);
+            ps.setTimestamp(2, Timestamp.valueOf(fechaHasta.atTime(23, 59, 59)), calendar);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -189,8 +190,9 @@ public class VentaPrintManager {
                 if (venta == null) {
                     venta = new Venta();
                     venta.setId(ventaId);
-                    // ✅ obtener fecha completa con hora
-                    venta.setFecha(rs.getTimestamp("fecha").toLocalDateTime());
+                    // ✅ obtener fecha completa con hora sin desfase horario
+                    Timestamp fecha = rs.getTimestamp("fecha", calendar);
+                    venta.setFecha(fecha.toLocalDateTime());
                     venta.setTotal(rs.getDouble("total"));
                     venta.setEnvio(rs.getDouble("envio"));
                     venta.setFormaPago(FormaPago.valueOf(rs.getString("formaPago")));
@@ -369,7 +371,7 @@ public class VentaPrintManager {
 
                 // ✅ Mostrar fecha + hora completa en una sola celda
                 Cell fechaCell = dataRow.createCell(columna++);
-                fechaCell.setCellValue(Timestamp.valueOf(venta.getFecha()));
+                fechaCell.setCellValue(venta.getFecha());
                 fechaCell.setCellStyle(dateTimeStyle);
 
                 dataRow.createCell(columna++).setCellValue(venta.getFormaPago().toString());
