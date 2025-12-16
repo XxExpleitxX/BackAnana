@@ -18,6 +18,7 @@ import java.util.Set;
 public class Categoria extends Base{
 
     private String denominacion;
+    private int descCategoria;
 
     @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
